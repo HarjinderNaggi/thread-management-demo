@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:file="http://www.mulesoft.org/schema/mule/file"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:sftp="http://www.mulesoft.org/schema/mule/sftp" xmlns:ftp="http://www.mulesoft.org/schema/mule/ftp" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ftp http://www.mulesoft.org/schema/mule/ftp/current/mule-ftp.xsd
+http://www.mulesoft.org/schema/mule/sftp http://www.mulesoft.org/schema/mule/sftp/current/mule-sftp.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+	<file:config name="File_Config" doc:name="File Config" doc:id="8f20c111-2147-4723-93fb-875179a7c963" >
+		<file:connection workingDir="D:\Work\Data\thread_management_processing" />
+	</file:config>
+	<flow name="threadpoolmgmtFlow" doc:id="0e396b63-70f3-4104-8b78-40fac7561848">
+		<file:listener doc:name="On New or Updated File" doc:id="7271d3b3-64ea-48d6-8ef0-68053c1730a9" config-ref="File_Config" autoDelete="true">
+			<scheduling-strategy >
+				<fixed-frequency />
+			</scheduling-strategy>
+		</file:listener>
+		<logger level="INFO" doc:name="Logger" doc:id="d56cc2c6-8b9f-4ae2-9540-5d09d2aba442" message='Start :#[attributes.fileName]'/>
+		<ee:transform doc:name="Transform Message" doc:id="09408741-67ad-4c5e-9132-f79afc0ccb99" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload splitBy(/\n/)]]></ee:set-payload>
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="data" ><![CDATA[%dw 2.0
+output application/java
+---
+[""]
+]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<foreach doc:name="For Each" doc:id="ebcb384d-64a9-438f-b96f-3e700356c33c" >
+			<ee:transform doc:name="Transform Message" doc:id="a96716bc-cf8f-4f71-9476-6e422f992cf5">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+upper(payload)]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+			<ee:transform doc:name="Transform Message" doc:id="0783dad5-3bd0-47d6-813e-ffb8c5be535f">
+				<ee:message>
+					<ee:set-payload><![CDATA[%dw 2.0
+import * from dw::core::Strings
+output application/java
+---
+underscore(payload)]]></ee:set-payload>
+				</ee:message>
+			</ee:transform>
+			<ee:transform doc:name="Transform Message" doc:id="b8a65411-778f-4e91-bfc2-31f607980917" >
+				<ee:message >
+				</ee:message>
+				<ee:variables >
+					<ee:set-variable variableName="data" ><![CDATA[%dw 2.0
+output application/java
+---
+vars.data << payload]]></ee:set-variable>
+				</ee:variables>
+			</ee:transform>
+		</foreach>
+		<file:write doc:name="Write" doc:id="956f09f0-7e52-41d4-b9f0-c5bfa06ca513" config-ref="File_Config" path="testoutput.txt"/>
+		<logger level="INFO" doc:name="Logger" doc:id="1a0c7e11-a510-4f46-820f-5730f55f25e7" message='#["Finished file= " ++ attributes.fileName ++ "Size= " ++ attributes.size]'/>
+	</flow>
+</mule>
